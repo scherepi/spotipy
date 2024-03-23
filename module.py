@@ -21,9 +21,11 @@ def generateToken():
         accessTokenResponse = requests.post("https://accounts.spotify.com/api/token", headers = {'Content-Type': 'application/x-www-form-urlencoded'}, data = accessRequestData)
         if (accessTokenResponse.ok):
             accessToken = accessTokenResponse.json()["access_token"]
+            return accessToken
         else:
             print("Action failed at access token request. Printing response:")
             print(accessTokenResponse.text)
+            return "error"
         #accessToken = json.loads(accessTokenResponse)["access_token"]
     except Exception as e:
         print(e)
@@ -41,5 +43,8 @@ def getArtist(artistID):
         print(artistResponse.text)"""
     
 # now let's actually generate it...
-generateToken()
-getArtist("4Z8W4fKeB5YxbusRsdQVPb")
+accessToken = generateToken()
+print("token generated... token value: " + accessToken)
+artistID = "4Z8W4fKeB5YxbusRsdQVPb"
+print("getting artist info for id " + artistID)
+getArtist(artistID)
