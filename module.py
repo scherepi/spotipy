@@ -7,6 +7,12 @@ import requests
 # --------------- CONSTANTS ----------------
 base_url = "https://api.spotify.com"
 accessToken = ""
+
+# --------------- CLASSES ------------------
+class Artist:
+    def __init__(JSONdata):
+        
+
 # first thing's first, let's get our token!
 def generateToken():
     try:
@@ -34,14 +40,26 @@ def generateToken():
 def getArtist(artistID):
     urlToGet = base_url + "/v1/artists/" + artistID
     artistResponse = requests.get(urlToGet, headers = {"Authorization" : "Bearer " + accessToken})
-    print(artistResponse.text)
-    """if (artistResponse.ok):
-        for key in artistResponse.json():
-            print(key + " : " + artistResponse[key])
+    if (artistResponse.ok):
+        artistJSON = artistResponse.json()
+        for key in artistJSON:
+            if (type(artistJSON[key] == dict)):
+                for keykey in artistJSON[key]:
+                    print()
     else:
         print("action failed at artist request. Printing response:")
-        print(artistResponse.text)"""
-    
+        print(artistResponse.text)
+
+def getPlaylist(playlistID):
+    urlToGet = base_url + "/v1/playlists/" + playlistID
+    playlistResponse = requests.get(urlToGet, headers = {"Authorization" : "Bearer " + accessToken})
+    if (playlistResponse.ok):
+        playlistJSON = playlistResponse.json()
+        for key in playlistJSON:
+            print(key + ": " + playlistResponse[key])
+    else:
+        print("action failed at playlist request. printing response:")
+        print(playlistResponse.text)
 # now let's actually generate it...
 accessToken = generateToken()
 print("token generated... token value: " + accessToken)
