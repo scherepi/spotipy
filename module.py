@@ -10,10 +10,18 @@ accessToken = ""
 
 # --------------- CLASSES ------------------
 class Artist:
-    def __init__(JSONdata):
+    def __init__(self, name, id, spotify_url, followers, genres, spotify_uri):
+        self.name = name
+        self.id = id
+        self.spotify_url = spotify_url
+        self.followers = followers
+        self.genres = genres
+        self.spotify_uri = spotify_uri
+    def __str__(self):
+        return f"Artist: {self.name}\nID: {self.id}\nFollowers: {self.folowers}"
         
 
-# first thing's first, let's get our token!
+# --------------- API METHODS ------------------
 def generateToken():
     try:
         load_dotenv()
@@ -37,15 +45,12 @@ def generateToken():
         print(e)
 
 
-def getArtist(artistID):
+def getArtistById(artistID):
     urlToGet = base_url + "/v1/artists/" + artistID
     artistResponse = requests.get(urlToGet, headers = {"Authorization" : "Bearer " + accessToken})
     if (artistResponse.ok):
         artistJSON = artistResponse.json()
-        for key in artistJSON:
-            if (type(artistJSON[key] == dict)):
-                for keykey in artistJSON[key]:
-                    print()
+        return parseArtist(artistJSON)
     else:
         print("action failed at artist request. Printing response:")
         print(artistResponse.text)
@@ -60,9 +65,27 @@ def getPlaylist(playlistID):
     else:
         print("action failed at playlist request. printing response:")
         print(playlistResponse.text)
-# now let's actually generate it...
+
+# --------------- HELPER METHODS -----------
+def getArtistByName():
+    return
+
+def parseArtist(jsonData):
+    #returns a new Artist object created with artist JSON data.
+    name = jsonData["name"]
+    id = jsonData["id"]
+    spotify_url = jsonData["external_urls"]["spotify"]
+    followers = jsonData["followers"]["total"]
+    genres = jsonData["genres"]
+    spotify_uri = jsonData["uri"]
+    return Artist(name, id, spotify_url, followers, genres, spotify_uri)
+
+
+# --------------- TESTING ------------------
 accessToken = generateToken()
 print("token generated... token value: " + accessToken)
 artistID = "4Z8W4fKeB5YxbusRsdQVPb"
 print("getting artist info for id " + artistID)
-getArtist(artistID)
+radiohead = getArtistById(artistID)
+print(radiohead.followers)
+
