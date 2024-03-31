@@ -60,8 +60,7 @@ def getPlaylist(playlistID):
     playlistResponse = requests.get(urlToGet, headers = {"Authorization" : "Bearer " + accessToken})
     if (playlistResponse.ok):
         playlistJSON = playlistResponse.json()
-        for key in playlistJSON:
-            print(key + ": " + playlistResponse[key])
+        parsePlaylist(playlistJSON)
     else:
         print("action failed at playlist request. printing response:")
         print(playlistResponse.text)
@@ -80,6 +79,21 @@ def parseArtist(jsonData):
     spotify_uri = jsonData["uri"]
     return Artist(name, id, spotify_url, followers, genres, spotify_uri)
 
+def parsePlaylist(jsonData):
+    name = jsonData["name"]
+    id = jsonData["id"]
+    limit = jsonData["tracks"]["limit"]
+    print("limit: " + str(limit))
+    ownerName = jsonData["owner"]["display_name"]
+    playlist_tracks = jsonData["tracks"]["items"]
+    # let's just get the track names for now:
+    names = []
+    for track in playlist_tracks:
+        names.append(track["track"]["name"])
+    print(name + " by " + ownerName + "[" + id + "]")
+    for name in names:
+        print(name)
+
 
 # --------------- TESTING ------------------
 accessToken = generateToken()
@@ -88,4 +102,6 @@ artistID = "4Z8W4fKeB5YxbusRsdQVPb"
 print("getting artist info for id " + artistID)
 radiohead = getArtistById(artistID)
 print(radiohead.followers)
+getPlaylist("10PyPsED8W8ocJhbUTCbHy")
+
 
