@@ -9,6 +9,8 @@ base_url = "https://api.spotify.com"
 accessToken = ""
 
 # --------------- CLASSES ------------------
+# These are mostly faithful to the object models in the Spotify API, but omit some of the details that I, frankly, didn't believe anyone would need.
+# Feel free to modify the code if for whatever reason you need to know what market songs are available in or whatever.
 class Artist:
     def __init__(self, name, id, spotify_url, followers, genres, spotify_uri):
         self.name = name
@@ -19,7 +21,36 @@ class Artist:
         self.spotify_uri = spotify_uri
     def __str__(self):
         return f"Artist: {self.name}\nID: {self.id}\nFollowers: {self.folowers}"
-        
+
+class Track:
+    def __init__(self, album, artists, duration, explicit, url, id, name, popularity, uri, is_local):
+        self.name = name
+        self.id = id
+        self.url = url
+        self.duration = duration
+        self.album = album
+        self.artists = artists
+        self.explicit = explicit
+        self.popularity = popularity # a special value defined by Spotify that takes into account play density and recency.
+        self.uri = uri
+        self.is_local = is_local
+    def __str__(self):
+        return f"Name: {self.name}\nArtists: {self.artists}\nAlbum: {self.album}"
+# --------------- EXCEPTIONS ------------------
+class IncompatibleTypeError(Exception):
+    def __init__(self, type, msg="Type must be tracks, artists, albums, playlists, shows, episodes, or audiobooks."):
+        self.type = type
+        self.msg = msg
+        super().__init__(self.msg)
+
+    def __str__(self):
+        return f'{self.type} -> {self.msg}'
+    
+class ItemNotFoundError(Exception):
+    def __init__(self, type, msg="The requested item was searched for and not found."):
+        self.type = type
+        self.msg = msg
+        super().__init__(self.msg)
 
 # --------------- API METHODS ------------------
 def generateToken():
@@ -65,9 +96,85 @@ def getPlaylist(playlistID):
         print("action failed at playlist request. printing response:")
         print(playlistResponse.text)
 
+def searchForItem(query, itemType):
+    # Searches the Spotify library for any kind of item. Must provide query (which can include filters) and the type of object desired.
+    # NOTE: for efficiency, this is going to be a strict search where values must match as exactly as possible.
+    availableTypes = ["tracks", "artists", "albums", "playlists", "shows", "episodes", "audiobooks"]
+    if itemType not in availableTypes:
+        raise IncompatibleTypeError(itemType)
+    searchURL = f"{base_url}/v1/search?q={query}&limit=1&type={itemType}"
+    searchResponse = requests.get(searchURL, headers = {"Authorization" : "Bearer " + accessToken})
+    if (searchResponse.ok):
+        searchJSON = searchResponse.json()
+        match itemType:
+            case "tracks":
+                if (searchJSON["tracks"]["total"] == 0):
+                    raise ItemNotFoundError
+                elif searchJSON["tracks"]["items"][0]["name"] == query:
+                    return parseTrack(searchJSON["tracks"]["items"][0])
+                else:
+                    raise ItemNotFoundError
+            case "artists":
+                if (searchJSON["artists"]["total"] == 0):
+                    raise ItemNotFoundError
+                elif searchJSON["artists"]["items"][0]["name"] == query:
+                    return parseArtist(searchJSON["artists"]["items"][0])
+                else:
+                    raise ItemNotFoundError
+            case "albums":
+                if (searchJSON["albums"]["total"] == 0):
+                    raise ItemNotFoundError
+                elif searchJSON["albums"]["items"][0]["name"] == query:
+                    #TODO: update with implemented parseAlbum function
+                    # return parseAlbum(searchJSON["albums"]["items"][0])
+                    return 0
+                else:
+                    raise ItemNotFoundError
+            case "playlists":
+                if (searchJSON["playlists"]["total"] == 0):
+                    raise ItemNotFoundError
+                elif searchJSON["playlists"]["items"][0]["name"] == query:
+                    return parsePlaylist(searchJSON["playlists"]["items"][0])
+                else:
+                    raise ItemNotFoundError 
+            case "shows":
+                if (searchJSON["shows"]["total"] == 0):
+                    raise ItemNotFoundError
+                elif searchJSON["shows"]["items"][0]["name"] == query:
+                    #TODO: update with implemented parseShow function (why? idk.)
+                    #return parseShow()
+                    return 0
+                else:
+                    raise ItemNotFoundError
+            case "episodes":
+                if (searchJSON["episodes"]["total"] == 0):
+                    raise ItemNotFoundError
+                elif searchJSON["episodes"]["items"][0]["name"] == query:
+                    #TODO: update with implemented parseEpisode function
+                    #return parseEpisode(searchJSON["episodes"]["items"][0])
+                    return 0
+                else:
+                    raise ItemNotFoundError
+            case "audiobooks":
+                if (searchJSON["audiobooks"]["total"] == 0):
+                    raise ItemNotFoundError
+                elif searchJSON["audiobooks"]["items"][0]["name"] == query:
+                    # TODO: update with implemented parseAudiobook function
+                    return 0
+                else:
+                    raise ItemNotFoundError
+                
+
 # --------------- HELPER METHODS -----------
-def getArtistByName():
-    return
+def getArtistByName(artistName):
+    # returns a new Artist object from the name of the artist. Process is to first search for the artist by name, then use the ID to get the artist object.
+    try:
+        return searchForItem(artistName, "artists")
+    except ItemNotFoundError:
+        print("Could not find artist.")
+        return 0
+
+    
 
 def parseArtist(jsonData):
     #returns a new Artist object created with artist JSON data.
@@ -78,6 +185,22 @@ def parseArtist(jsonData):
     genres = jsonData["genres"]
     spotify_uri = jsonData["uri"]
     return Artist(name, id, spotify_url, followers, genres, spotify_uri)
+
+def parseTrack(jsonData):
+    #returns a new Track object created with track JSON data.
+    name = jsonData["name"]
+    artists = []
+    for entry in jsonData["artists"]:
+        artists.append(entry["name"])
+    duration = jsonData["duration_ms"]
+    album = jsonData["album"]["name"]
+    explicit = jsonData["explicit"]
+    popularity = jsonData["popularity"]
+    uri = jsonData["uri"]
+    is_local = jsonData["is_local"]
+    url = jsonData["external_urls"]["spotify"]
+    id = jsonData["id"]
+    return Track(album, artists, duration, explicit, url, id, name, popularity, uri, is_local)
 
 def parsePlaylist(jsonData):
     name = jsonData["name"]
