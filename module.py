@@ -36,6 +36,27 @@ class Track:
         self.is_local = is_local
     def __str__(self):
         return f"Name: {self.name}\nArtists: {self.artists}\nAlbum: {self.album}"
+    
+class SimpleAlbum:
+    # This class is named such because it's a simplification of the album's data as retrieved by the search function. The href of the album can be used to construct a RichAlbum with track information.
+    def __init__(self, name, id, spotify_url, total_tracks, album_type, href, release_date, release_date_precision, uri, artists):
+        self.name = name
+        self.id = id
+        self.spotify_url = spotify_url
+        self.total_tracks = total_tracks
+        self.album_type = album_type
+        self.href = href
+        self.release_date = (release_date, release_date_precision) # I think these would be best paired in a tuple.
+        self.uri = uri
+        self.artists = artists
+    def __str__(self):
+        return f"Name: {self.name}\nArtists:{self.artists}\n"
+
+#TODO: implement RichAlbum
+
+class RichAlbum:
+    def __init__(self):
+        self
 # --------------- EXCEPTIONS ------------------
 class IncompatibleTypeError(Exception):
     def __init__(self, type, msg="Type must be tracks, artists, albums, playlists, shows, episodes, or audiobooks."):
