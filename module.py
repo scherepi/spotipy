@@ -12,15 +12,16 @@ accessToken = ""
 # These are mostly faithful to the object models in the Spotify API, but omit some of the details that I, frankly, didn't believe anyone would need.
 # Feel free to modify the code if for whatever reason you need to know what market songs are available in or whatever.
 class Artist:
-    def __init__(self, name, id, spotify_url, followers, genres, spotify_uri):
+    def __init__(self, name, ArtistId, spotify_url, followers, genres, spotify_uri):
+        print("Building Artist object with name " + name)
         self.name = name
-        self.id = id
+        self.ArtistId = ArtistId
         self.spotify_url = spotify_url
         self.followers = followers
         self.genres = genres
         self.spotify_uri = spotify_uri
     def __str__(self):
-        return f"Artist: {self.name}\nID: {self.id}\nFollowers: {self.folowers}"
+        return f"Artist: {self.name}\nID: {self.ArtistId}\nFollowers: {self.followers}"
 
 class Track:
     def __init__(self, album, artists, duration, explicit, url, id, name, popularity, uri, is_local):
@@ -120,29 +121,39 @@ def getPlaylist(playlistID):
 def searchForItem(query, itemType):
     # Searches the Spotify library for any kind of item. Must provide query (which can include filters) and the type of object desired.
     # NOTE: for efficiency, this is going to be a strict search where values must match as exactly as possible.
-    availableTypes = ["tracks", "artists", "albums", "playlists", "shows", "episodes", "audiobooks"]
+    print("Searching for item " + query + " of type " + itemType)
+    availableTypes = ["tracks", "artist", "albums", "playlists", "shows", "episodes", "audiobooks"]
     if itemType not in availableTypes:
         raise IncompatibleTypeError(itemType)
     searchURL = f"{base_url}/v1/search?q={query}&limit=1&type={itemType}"
+    print("Making search request to " + searchURL)
     searchResponse = requests.get(searchURL, headers = {"Authorization" : "Bearer " + accessToken})
+    print(searchResponse.json())
     if (searchResponse.ok):
+        print("Attempting to parse JSON response.")
         searchJSON = searchResponse.json()
         match itemType:
             case "tracks":
+                print("Looking to parse Track")
                 if (searchJSON["tracks"]["total"] == 0):
                     raise ItemNotFoundError
                 elif searchJSON["tracks"]["items"][0]["name"] == query:
                     return parseTrack(searchJSON["tracks"]["items"][0])
                 else:
                     raise ItemNotFoundError
-            case "artists":
+            case "artist":
+                print("Looking to parse Artist")
                 if (searchJSON["artists"]["total"] == 0):
+                    print("Artist not found.")
                     raise ItemNotFoundError
                 elif searchJSON["artists"]["items"][0]["name"] == query:
+                    print("Artist name matches.")
                     return parseArtist(searchJSON["artists"]["items"][0])
                 else:
+                    print("Artist name does not match.")
                     raise ItemNotFoundError
             case "albums":
+                print("Looking to parse Album")
                 if (searchJSON["albums"]["total"] == 0):
                     raise ItemNotFoundError
                 elif searchJSON["albums"]["items"][0]["name"] == query:
@@ -152,6 +163,7 @@ def searchForItem(query, itemType):
                 else:
                     raise ItemNotFoundError
             case "playlists":
+                print("Looking to parse Playlist")
                 if (searchJSON["playlists"]["total"] == 0):
                     raise ItemNotFoundError
                 elif searchJSON["playlists"]["items"][0]["name"] == query:
@@ -184,15 +196,21 @@ def searchForItem(query, itemType):
                     return 0
                 else:
                     raise ItemNotFoundError
+            case _:
+                print("Something went wrong trying to parse the data.")
                 
 
 # --------------- HELPER METHODS -----------
 def getArtistByName(artistName):
+    print("Getting artist from name " + artistName)
     # returns a new Artist object from the name of the artist. Process is to first search for the artist by name, then use the ID to get the artist object.
     try:
-        return searchForItem(artistName, "artists")
+        return searchForItem(artistName, "artist")
     except ItemNotFoundError:
         print("Could not find artist.")
+        return 0
+    except IncompatibleTypeError:
+        print("Something went wrong in the backend.")
         return 0
 
     
@@ -200,12 +218,12 @@ def getArtistByName(artistName):
 def parseArtist(jsonData):
     #returns a new Artist object created with artist JSON data.
     name = jsonData["name"]
-    id = jsonData["id"]
+    ArtistId = jsonData["id"]
     spotify_url = jsonData["external_urls"]["spotify"]
     followers = jsonData["followers"]["total"]
     genres = jsonData["genres"]
     spotify_uri = jsonData["uri"]
-    return Artist(name, id, spotify_url, followers, genres, spotify_uri)
+    return Artist(name, ArtistId, spotify_url, followers, genres, spotify_uri)
 
 def parseTrack(jsonData):
     #returns a new Track object created with track JSON data.
@@ -249,3 +267,8 @@ print(radiohead.followers)
 getPlaylist("10PyPsED8W8ocJhbUTCbHy")
 
 
+king_krule = getArtistByName("King Krule")
+king_krule_two = getArtistById(king_krule.ArtistId)
+
+assert type(king_krule) == type(king_krule_two)
+print(king_krule)
