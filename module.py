@@ -40,9 +40,9 @@ class Track:
     
 class SimpleAlbum:
     # This class is named such because it's a simplification of the album's data as retrieved by the search function. The href of the album can be used to construct a RichAlbum with track information.
-    def __init__(self, name, id, spotify_url, total_tracks, album_type, href, release_date, release_date_precision, uri, artists):
+    def __init__(self, name, AlbumId, spotify_url, total_tracks, album_type, href, release_date, release_date_precision, uri, artists):
         self.name = name
-        self.id = id
+        self.AlbumId = AlbumId
         self.spotify_url = spotify_url
         self.total_tracks = total_tracks
         self.album_type = album_type
@@ -55,9 +55,12 @@ class SimpleAlbum:
 
 #TODO: implement RichAlbum
 
-class RichAlbum:
-    def __init__(self):
-        self
+class RichAlbum(SimpleAlbum):
+    def __init__(self, name, AlbumId, spotify_url, total_tracks, album_type, href, release_date, release_date_precision, uri, artists, label, popularity):
+        super().__init__(name, AlbumId, spotify_url, total_tracks, album_type, href, release_date, release_date_precision, uri, artists)
+        self.label = label
+        self.popularity = popularity
+
 # --------------- EXCEPTIONS ------------------
 class IncompatibleTypeError(Exception):
     def __init__(self, type, msg="Type must be tracks, artists, albums, playlists, shows, episodes, or audiobooks."):
@@ -122,7 +125,7 @@ def searchForItem(query, itemType):
     # Searches the Spotify library for any kind of item. Must provide query (which can include filters) and the type of object desired.
     # NOTE: for efficiency, this is going to be a strict search where values must match as exactly as possible.
     print("Searching for item " + query + " of type " + itemType)
-    availableTypes = ["tracks", "artist", "albums", "playlists", "shows", "episodes", "audiobooks"]
+    availableTypes = ["track", "artist", "album", "playlist", "show", "episode", "audiobook"]
     if itemType not in availableTypes:
         raise IncompatibleTypeError(itemType)
     searchURL = f"{base_url}/v1/search?q={query}&limit=1&type={itemType}"
@@ -133,7 +136,7 @@ def searchForItem(query, itemType):
         print("Attempting to parse JSON response.")
         searchJSON = searchResponse.json()
         match itemType:
-            case "tracks":
+            case "track":
                 print("Looking to parse Track")
                 if (searchJSON["tracks"]["total"] == 0):
                     raise ItemNotFoundError
@@ -152,7 +155,7 @@ def searchForItem(query, itemType):
                 else:
                     print("Artist name does not match.")
                     raise ItemNotFoundError
-            case "albums":
+            case "album":
                 print("Looking to parse Album")
                 if (searchJSON["albums"]["total"] == 0):
                     raise ItemNotFoundError
@@ -162,7 +165,7 @@ def searchForItem(query, itemType):
                     return 0
                 else:
                     raise ItemNotFoundError
-            case "playlists":
+            case "playlist":
                 print("Looking to parse Playlist")
                 if (searchJSON["playlists"]["total"] == 0):
                     raise ItemNotFoundError
@@ -170,7 +173,7 @@ def searchForItem(query, itemType):
                     return parsePlaylist(searchJSON["playlists"]["items"][0])
                 else:
                     raise ItemNotFoundError 
-            case "shows":
+            case "show":
                 if (searchJSON["shows"]["total"] == 0):
                     raise ItemNotFoundError
                 elif searchJSON["shows"]["items"][0]["name"] == query:
@@ -179,7 +182,7 @@ def searchForItem(query, itemType):
                     return 0
                 else:
                     raise ItemNotFoundError
-            case "episodes":
+            case "episode":
                 if (searchJSON["episodes"]["total"] == 0):
                     raise ItemNotFoundError
                 elif searchJSON["episodes"]["items"][0]["name"] == query:
@@ -188,7 +191,7 @@ def searchForItem(query, itemType):
                     return 0
                 else:
                     raise ItemNotFoundError
-            case "audiobooks":
+            case "audiobook":
                 if (searchJSON["audiobooks"]["total"] == 0):
                     raise ItemNotFoundError
                 elif searchJSON["audiobooks"]["items"][0]["name"] == query:
@@ -256,6 +259,22 @@ def parsePlaylist(jsonData):
     for name in names:
         print(name)
 
+def parseSimpleAlbum(jsonData):
+    name = jsonData["name"]
+    album_id = jsonData["id"]
+    album_type = jsonData["album_type"]
+    total_tracks = jsonData["total_tracks"]
+    spotify_url = jsonData["external_urls"]["spotify"]
+    href = jsonData["href"]
+    release_date = jsonData["release_date"]
+    release_date_precision = jsonData["release_date_precision"]
+    uri = jsonData["uri"]
+    artists = []
+    for artist in jsonData["artists"]:
+        artists.append(artist["name"])
+    return SimpleAlbum(name, album_id, spotify_url, total_tracks, album_type, href, release_date, release_date_precision, uri, artists)
+
+
 
 # --------------- TESTING ------------------
 accessToken = generateToken()
@@ -272,3 +291,11 @@ king_krule_two = getArtistById(king_krule.ArtistId)
 
 assert type(king_krule) == type(king_krule_two)
 print(king_krule)
+
+seaforth = searchForItem("Seaforth", "track")
+print(seaforth)
+assert type(seaforth) == Track
+# Testing multi-artist track
+summers_over = searchForItem("Summer's Over", "track")
+print(summers_over)
+assert len(summers_over.artists) == 2
